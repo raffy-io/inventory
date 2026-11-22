@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -20,6 +21,7 @@ import (
 	"github.com/raffy-io/inventory"
 	"github.com/raffy-io/inventory/internal/auth"
 	inventoryDB "github.com/raffy-io/inventory/internal/db"
+	"github.com/raffy-io/inventory/internal/home"
 	"github.com/raffy-io/inventory/internal/middleware"
 	"github.com/raffy-io/inventory/internal/product"
 )
@@ -74,9 +76,17 @@ func run() error {
 	// Routes
 	r := chi.NewRouter()
 
+	// -----static assets CSS JS IMG----- //
+	staticFS, err := fs.Sub(inventory.EmbeddedAssets, "static")
+	if err != nil {
+		return fmt.Errorf("Cant find static assets: %w", err)
+	}
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+
 	// Public routes
 	r.Group(func(r chi.Router) {
 		r.Use(sessionManager.LoadAndSave)
+		r.Mount("/",home.RootRoute(sessionManager))
 		r.Mount("/auth", auth.AuthRoutes(queries, sessionManager))
 
 	})
@@ -127,7 +137,4 @@ func run() error {
 	return nil
 }
 
-/*
- TODOS
- Auth part login and logout
-*/
+

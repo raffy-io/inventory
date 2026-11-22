@@ -60,6 +60,5 @@ func seedInitialOwner(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 
-	slog.Info("ensured initial owner user exists", "email", ownerEmail)
 	return nil
 }
