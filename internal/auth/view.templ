@@ -1,0 +1,50 @@
+package auth
+
+templ login(form *authForm) {
+	<section class="min-h-dvh p-5 flex items-center justify-center">
+		@loginForm(form)
+	</section>
+}
+
+templ loginForm(form *authForm) {
+	<div id="login-form-wrapper" class="bg-[#152331] p-5 shadow-lg w-full md:w-2/3 lg:w-1/4">
+		<form
+			id="login-form"
+			class="flex flex-col"
+			hx-post="/auth/login"
+			hx-target="#login-form-wrapper"
+			hx-swap="outerHTML"
+		>
+			<div class="flex flex-col mb-2">
+				<label for="email" class="capitalize">email address</label>
+				<input
+					id="email"
+					type="email"
+					name="email"
+					value={ form.email }
+					class="bg-gray-500"
+				/>
+				if msg := form.Errors["email"]; msg != "" {
+					<p class="text-xs text-red-500">{ msg }</p>
+				}
+			</div>
+			<div class="flex flex-col mb-4">
+				<label for="password" class="capitalize">password</label>
+				<input
+					type="password"
+					name="password"
+					id="password"
+					class="bg-gray-500 "
+				/>
+				if msg := form.Errors["password"]; msg != "" {
+					<p class="text-xs text-red-500">{ msg }</p>
+				}
+			</div>
+			<button
+				form="login-form"
+				type="submit"
+				class="cursor-pointer capitalize px-3 py-0.5 bg-red-500"
+			>login</button>
+		</form>
+	</div>
+}

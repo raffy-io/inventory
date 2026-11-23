@@ -4,22 +4,26 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	inventoryDB "github.com/raffy-io/inventory/internal/db"
+	"github.com/raffy-io/inventory/internal/web"
 	"github.com/shopspring/decimal"
 )
 
 type productHandler struct {
 	service *productService
+	render  *web.Renderer
 }
 
-func newProductHandler(service *productService) *productHandler {
+func newProductHandler(service *productService, render *web.Renderer) *productHandler {
 	return &productHandler{
 		service: service,
+		render:  render,
 	}
 }
 
@@ -40,7 +44,13 @@ func (h *productHandler) getAll(w http.ResponseWriter, r *http.Request) {
 		products = []inventoryDB.Product{}
 	}
 
-	writeJSON(w, http.StatusOK, products)
+	component := productsPage()
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.render.Render(w, r, "Welcome", component); err != nil {
+		slog.Error("failed to render login template", "err", err, "path", r.URL.Path)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 }
 

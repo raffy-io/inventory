@@ -21,7 +21,6 @@ import (
 	"github.com/raffy-io/inventory"
 	"github.com/raffy-io/inventory/internal/auth"
 	inventoryDB "github.com/raffy-io/inventory/internal/db"
-	"github.com/raffy-io/inventory/internal/home"
 	"github.com/raffy-io/inventory/internal/middleware"
 	"github.com/raffy-io/inventory/internal/product"
 )
@@ -86,7 +85,9 @@ func run() error {
 	// Public routes
 	r.Group(func(r chi.Router) {
 		r.Use(sessionManager.LoadAndSave)
-		r.Mount("/",home.RootRoute(sessionManager))
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/products", http.StatusFound)
+		})
 		r.Mount("/auth", auth.AuthRoutes(queries, sessionManager))
 
 	})
@@ -95,12 +96,12 @@ func run() error {
 	authMW := &middleware.Auth{
 		Sessions:  sessionManager,
 		LoginPath: "/auth/login",
-		HomePath:  "/",
+		HomePath:  "/products",
 	}
 	r.Group(func(r chi.Router) {
 		r.Use(sessionManager.LoadAndSave)
 		r.Use(authMW.RequireAuth)
-		r.Mount("/products", product.ProductRoutes(queries))
+		r.Mount("/products", product.ProductRoutes(queries, sessionManager))
 	})
 
 	// Server
@@ -136,5 +137,3 @@ func run() error {
 
 	return nil
 }
-
-
