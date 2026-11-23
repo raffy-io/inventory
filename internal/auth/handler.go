@@ -36,16 +36,13 @@ func (h *authHandler) serveLogin(w http.ResponseWriter, r *http.Request) {
 
 func (h *authHandler) processLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	email := r.PostFormValue("email")
-	password := r.PostFormValue("password")
 
-	form := newAuthForm(email, password)
+	form := newAuthForm(
+		r.PostFormValue("email"),
+		r.PostFormValue("password"),
+	)
 	if !form.validate() {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusBadRequest)
-		if err := loginForm(form).Render(ctx, w); err != nil {
-			slog.Error("failed to render login form", "err", err, "path", r.URL.Path)
-		}
+		h.renderLoginForm(w, r, form, http.StatusBadRequest)
 		return
 	}
 
@@ -54,11 +51,7 @@ func (h *authHandler) processLogin(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrInvalidCredentials) {
 			form.addError("email", "invalid email or password")
 			form.addError("password", "invalid email or password")
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.WriteHeader(http.StatusBadRequest)
-			if err := loginForm(form).Render(ctx, w); err != nil {
-				slog.Error("failed to render login form", "err", err, "path", r.URL.Path)
-			}
+			h.renderLoginForm(w, r, form, http.StatusBadRequest)
 			return
 		}
 		slog.Error("login failed", "err", err, "path", r.URL.Path)
@@ -75,7 +68,7 @@ func (h *authHandler) processLogin(w http.ResponseWriter, r *http.Request) {
 	h.session.Put(ctx, "user_id", user.ID)
 	h.session.Put(ctx, "role", user.Role)
 
-	w.Header().Set("HX-Location", "/products")
+	w.Header().Set("HX-Redirect", "/products")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -92,6 +85,14 @@ func (h *authHandler) processLogout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"message": "successfully logged out",
 	})
+}
+
+func (h *authHandler) renderLoginForm(w http.ResponseWriter, r *http.Request, form *authForm, status int) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	if err := loginForm(form).Render(r.Context(), w); err != nil {
+		slog.Error("failed to render login form", "err", err, "path", r.URL.Path)
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
